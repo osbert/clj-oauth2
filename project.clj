@@ -5,6 +5,7 @@
                  [clj-http "0.9.2"]
                  [uri "1.1.0"]
                  [commons-codec/commons-codec "1.9"]]
-  :profiles {:dev {:dependencies [[ring "1.3.0"]]}}
+  :profiles {:dev {:source-paths ["dev"]
+                   :dependencies [[ring "1.3.0"]]}}
   :aot [clj-oauth2.OAuth2Exception
         clj-oauth2.OAuth2StateMismatchException])

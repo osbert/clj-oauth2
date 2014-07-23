@@ -9,6 +9,19 @@
            [org.apache.commons.codec.binary Base64]))
 
 (defn make-auth-request
+  "Create the auth request, takes a map which must have the following
+  keys:
+
+    :authorization-uri - URI for sending the user to approve the request.
+    :client-id - Client ID.
+
+  Can optionally have the following:
+    :redirect-uri - URI for the resource owner to be redirected to
+                    after authorization.
+    :scope - Scope of the authorization, dependent service OAuth is
+             being used with.
+    :state - Param that will be sent back when resource owner is
+             redirected, recommended to prevent cross-site attacks."
   [{:keys [authorization-uri client-id redirect-uri scope access-type]}
    & [state]]
   (let [uri (uri/uri->map (uri/make authorization-uri) true)
@@ -18,14 +31,12 @@
                 :response_type "code")
         query (if state (assoc query :state state) query)
         query (if access-type (assoc query :access_type access-type) query)
-        query (if scope
-                (assoc query :scope (str/join " " scope))
-                query)]
-    {:uri (str (uri/make (assoc uri :query query)))
+        query (if scope (assoc query :scope (str/join " " scope)) query)]
+    {:uri (.toString (uri/make (assoc uri :query query)))
      :scope scope
      :state state}))
 
-(defn- add-auth-header [req scheme param] ; Force.com
+(defn- add-auth-header [req scheme param]
   (let [header (str scheme " " param)]
     (assoc-in req [:headers "Authorization"] header)))
 
