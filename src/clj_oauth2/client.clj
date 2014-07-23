@@ -21,7 +21,10 @@
     :scope - Scope of the authorization, dependent service OAuth is
              being used with.
     :state - Param that will be sent back when resource owner is
-             redirected, recommended to prevent cross-site attacks."
+             redirected, recommended to prevent cross-site attacks.
+
+  Returns a map of the request, with :uri as the URI to use for the
+  request, :scope of the expected scope, and :state."
   [{:keys [authorization-uri client-id redirect-uri scope access-type]}
    & [state]]
   (let [uri (uri/uri->map (uri/make authorization-uri) true)
@@ -36,19 +39,28 @@
      :scope scope
      :state state}))
 
-(defn- add-auth-header [req scheme param]
+(defn- add-auth-header
+  "Returns an update request map, consisting of the original request
+  map with the 'Authorisation' header. scheme is just a string of the
+  type of authorisation \"OAuth\", \"Basic\", with param following."
+  [req scheme param]
   (let [header (str scheme " " param)]
     (assoc-in req [:headers "Authorization"] header)))
 
-(defn- add-base64-auth-header [req scheme param]
-  (add-auth-header req scheme (Base64/encodeBase64String (.getBytes param))))
+(defn- add-base64-auth-header
+  "Same as add-auth-header, with param being Base64 encoded instead."
+  [req scheme param]
+  (add-auth-header req scheme
+                   (Base64/encodeBase64String (.getBytes param))))
 
 (defmulti prepare-access-token-request
+  "We will despatch based on the grant-type."
   (fn [request endpoint params]
     (name (:grant-type endpoint))))
 
 (defmethod prepare-access-token-request
-  "authorization_code" [request endpoint params]
+  "authorization_code"
+  [request endpoint params]
   (merge-with merge request
               {:body {:code
                       (:code params)
@@ -56,7 +68,8 @@
                       (:redirect-uri endpoint)}}))
 
 (defmethod prepare-access-token-request
-  "password" [request endpoint params]
+  "password"
+  [request endpoint params]
   (merge-with merge request
               {:body {:username (:username params)
                       :password (:password params)}}))
@@ -64,16 +77,11 @@
 (defn- add-client-authentication [request endpoint]
   (let [{:keys [client-id client-secret authorization-header?]} endpoint]
     (if authorization-header?
-      (add-base64-auth-header
-       request
-       "Basic"
-       (str client-id ":" client-secret))
-      (merge-with
-       merge
-       request
-       {:body
-        {:client_id client-id
-         :client_secret client-secret}}))))
+      (add-base64-auth-header request "Basic"
+                              (str client-id ":" client-secret))
+      (merge-with merge request
+                  {:body {:client_id client-id
+                          :client_secret client-secret}}))))
 
 (defn read-json-from-body
   "convert body to a reader to be compatible with clojure.data.json 0.2.1
