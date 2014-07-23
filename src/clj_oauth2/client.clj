@@ -8,6 +8,9 @@
   (:import [clj_oauth2 OAuth2Exception OAuth2StateMismatchException]
            [org.apache.commons.codec.binary Base64]))
 
+(defn has-keys? [m keys]
+  (apply = (map count [keys (select-keys m keys)])))
+
 (defn make-auth-request
   "Create the auth request, takes a map which must have the following
   keys:
@@ -25,8 +28,10 @@
 
   Returns a map of the request, with :uri as the URI to use for the
   request, :scope of the expected scope, and :state."
-  [{:keys [authorization-uri client-id redirect-uri scope access-type]}
+  [{:keys [authorization-uri client-id redirect-uri scope access-type]
+    :as oauth2-map}
    & [state]]
+  {:pre [(has-keys? oauth2-map [:authorization-uri :client-id])]}
   (let [uri (uri/uri->map (uri/make authorization-uri) true)
         query (assoc (:query uri)
                 :client_id client-id
@@ -74,7 +79,8 @@
               {:body {:username (:username params)
                       :password (:password params)}}))
 
-(defn- add-client-authentication [request endpoint]
+(defn- add-client-authentication
+  [request endpoint]
   (let [{:keys [client-id client-secret authorization-header?]} endpoint]
     (if authorization-header?
       (add-base64-auth-header request "Basic"
