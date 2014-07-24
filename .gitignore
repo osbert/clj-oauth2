@@ -7,4 +7,7 @@ pom.xml
 /.lein-failures
 .classpath
 .project
-
+.\#*
+\#*
+.nrepl-port
+dev/
