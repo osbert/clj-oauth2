@@ -59,13 +59,15 @@
                    (Base64/encodeBase64String (.getBytes param))))
 
 (defmulti prepare-access-token-request
-  "We will despatch based on the grant-type."
+  "We will dispatch based on the grant-type."
   (fn [request endpoint params]
     (name (:grant-type endpoint))))
 
 (defmethod prepare-access-token-request
   "authorization_code"
   [request endpoint params]
+  {:pre [(has-keys? params [:code])
+         (has-keys? endpoint [:redirect-uri])]}
   (merge-with merge request
               {:body {:code
                       (:code params)
@@ -81,6 +83,7 @@
 
 (defn- add-client-authentication
   [request endpoint]
+  {:pre [(has-keys? endpoint [:client-id :client-secret])]}
   (let [{:keys [client-id client-secret authorization-header?]} endpoint]
     (if authorization-header?
       (add-base64-auth-header request "Basic"
@@ -98,8 +101,23 @@
     (with-open [reader (clojure.java.io/reader body)]
       (json/parse-stream reader true))))
 
+(defn- build-access-request
+  "Given the endpoint, and params, will return the request to be sent
+  to the resource server."
+  [{:keys [access-token-uri access-query-param grant-type] :as endpoint}
+   params]
+  {:pre [(has-keys? endpoint [:grant-type])]}
+  (let [request {:content-type "application/x-www-form-urlencoded"
+                 :throw-exceptions false
+                 :body {:grant_type grant-type}}
+        request (prepare-access-token-request request endpoint params)
+        request (add-client-authentication request endpoint)
+        request (update-in request [:body] uri/form-url-encode)]
+    request))
+
 (defn- request-access-token
   [endpoint params]
+  {:pre [(has-keys? endpoint [:access-token-uri :grant-type])]}
   (let [{:keys [access-token-uri access-query-param grant-type]} endpoint
         request
         {:content-type "application/x-www-form-urlencoded"
@@ -113,7 +131,7 @@
         body (if (and content-type
                       (or (.startsWith content-type "application/json")
                           (.startsWith content-type "text/javascript"))) ; Facebookism
-               (read-json-from-body body true)
+               (read-json-from-body body)
                (uri/form-url-decode body)) ; Facebookism
         error (:error body)]
     (if (or error (not= status 200))
@@ -134,8 +152,7 @@
        :refresh-token (:refresh_token body)})))
 
 (defn get-access-token
-  [endpoint
-   & [params {expected-state :state expected-scope :scope}]]
+  [endpoint & [params {expected-state :state expected-scope :scope}]]
   (let [{:keys [state error]} params]
     (cond (string? error)
           (throw (OAuth2Exception. (:error_description params) error))
@@ -203,7 +220,7 @@
                                           :refresh_token refresh-token
                                           :grant_type "refresh_token"}})]
     (when (= (:status req) 200)
-      (read-json-from-body (:body req) true))))
+      (read-json-from-body (:body req)))))
 
 (def request
   (wrap-oauth2 http/request))
