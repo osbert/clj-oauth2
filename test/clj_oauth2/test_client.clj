@@ -78,7 +78,8 @@
 
 (fact "Correct headers generated for getting access token."
   (client/get-access-token endpoint-auth-code {:code "abracadabra"
-                                               :state "foo"})
+                                               :state "foo"}
+                           {:state "foo"})
   => default-response
   (provided (clj-http.client/post anything
                                   (contains
@@ -102,3 +103,37 @@
   => default-response
   (provided (clj-http.client/post #"\?formurlenc$"
                                   anything) => (token-response {})))
+
+(fact "should grant access to protected resources"
+  ((client/wrap-oauth2 client/request) {:method :get
+                                        :oauth2 access-token
+                                        :url "http://localhost:18080/some-resource"})
+  => (contains {:headers {} :status 200})
+  (provided (clj-http.core/request (contains {:query-string "access_token=sesame"
+                                              :uri "/some-resource"
+                                              :request-method :get}))
+            => {:headers {} :status 200}))
+
+(fact "should preserve the url's query string when adding the access-token"
+  ((client/wrap-oauth2 client/request) {:method :get
+                                        :oauth2 access-token
+                                        :query-params {:foo "123"}
+                                        :url "http://localhost:18080/some-resource"})
+  => (contains {:headers {} :status 200})
+  (provided (clj-http.core/request (contains {:query-string "access_token=sesame&foo=123"
+                                              :uri "/some-resource"
+                                              :request-method :get}))
+            => {:headers {} :status 200}))
+
+;; This test doesn't test what it should, have to figure out body
+;; encoding from the clj-http library.
+(fact "should support passing bearer tokens through the authorization header"
+  ((client/wrap-oauth2 client/request) {:method :get
+                                        :oauth2 (dissoc access-token :query-param)
+                                        :query-params {:foo "123"}
+                                        :url "http://localhost:18080/some-resource"})
+  => (contains {:headers {} :status 200})
+  (provided (clj-http.core/request (contains {:query-string "foo=123"
+                                              :uri "/some-resource"
+                                              :request-method :get}))
+            => {:headers {} :status 200}))
