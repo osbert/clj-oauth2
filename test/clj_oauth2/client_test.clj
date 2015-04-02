@@ -282,3 +282,22 @@
       (is (= "put" (:body (base/put "http://localhost:18080/put" req))))
       (is (= "delete" (:body (base/delete "http://localhost:18080/delete" req))))
       (is (= 200 (:status (base/head "http://localhost:18080/head" req)))))))
+
+(deftest add-access-token-to-request
+  (testing "should add access-token as header when token-type is 'bearer'"
+    (let [token {:token-type "bearer" :access-token "ABC"}
+          [req added?] (base/add-access-token-to-request {} token)]
+      (is added?)
+      (is (= req {:headers {"Authorization" "Bearer ABC"}}))))
+
+  (testing "should add access-token as header when token-type is 'Bearer'"
+    (let [token {:token-type "Bearer" :access-token "ABC"}
+          [req added?] (base/add-access-token-to-request {} token)]
+      (is added?)
+      (is (= req {:headers {"Authorization" "Bearer ABC"}}))))
+
+  (testing "should add access-token as query-param if specified"
+    (let [token {:token-type "Bearer" :access-token "ABC" :query-param "access_token"}
+          [req added?] (base/add-access-token-to-request {} token)]
+      (is added?)
+      (is (= req {:query-params {"access_token" "ABC"}})))))
