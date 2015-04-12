@@ -171,10 +171,9 @@
                            access-token))))
 
 (defmulti add-access-token-to-request
-  (fn [req oauth2]
-    (-> oauth2
-        :token-type
-        str/lower-case)))
+  (fn [req {:keys [token-type]}]
+    (if token-type
+      (str/lower-case token-type))))
 
 (defmethod add-access-token-to-request
   :default [req oauth2]
