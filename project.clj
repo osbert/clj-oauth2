@@ -2,7 +2,7 @@
   :description "clj-http and ring middlewares for OAuth 2.0"
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [cheshire "5.3.1"]
-                 [clj-http "0.9.2"]
+                 [clj-http "0.1.2"]
                  [uri "1.1.0"]
                  [commons-codec/commons-codec "1.9"]]
   :profiles {:dev {:source-paths ["dev"]
