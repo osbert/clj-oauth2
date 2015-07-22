@@ -122,7 +122,9 @@
         request
         {:content-type "application/x-www-form-urlencoded"
          :throw-exceptions false
-         :body {:grant_type grant-type}}
+         :body {:grant_type grant-type}
+         :conn-timeout 10000
+         :socket-timeout 10000}
         request (prepare-access-token-request request endpoint params)
         request (add-client-authentication request endpoint)
         request (update-in request [:body] uri/form-url-encode)
