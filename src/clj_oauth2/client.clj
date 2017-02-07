@@ -28,7 +28,7 @@
 
   Returns a map of the request, with :uri as the URI to use for the
   request, :scope of the expected scope, and :state."
-  [{:keys [authorization-uri client-id redirect-uri scope access-type prompt include-granted-scopes]
+  [{:keys [authorization-uri client-id redirect-uri scope access-type prompt include-granted-scopes login-hint]
     :as oauth2-map}
    & [state]]
   {:pre [(has-keys? oauth2-map [:authorization-uri :client-id])]}
@@ -41,7 +41,8 @@
         query (if access-type (assoc query :access_type access-type) query)
         query (if scope (assoc query :scope (str/join " " scope)) query)
         query (if prompt (assoc query :prompt (str/join " " prompt)) query)
-        query (if include-granted-scopes (assoc query :include_granted_scopes include-granted-scopes) query)]
+        query (if include-granted-scopes (assoc query :include_granted_scopes include-granted-scopes) query)
+        query (if login-hint (assoc query :login_hint login-hint) query)]
     {:uri (.toString (uri/make (assoc uri :query query)))
      :scope scope
      :state state}))
